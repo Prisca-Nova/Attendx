@@ -1,0 +1,99 @@
+<html lang='en'>
+
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Invitation to AttendX</title>
+    <style>
+      body {
+        font-family: 'Arial', sans-serif;
+        background-color: #f4f4f4;
+        margin: 0;
+        padding: 50px;
+        line-height: 1.6;
+      }
+
+      .user-title {
+        text-transform: capitalize;
+      }
+
+      .email-container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+      }
+
+      .email-header {
+        background: linear-gradient(135deg, #4caf50, #2196f3);
+        color: white;
+        text-align: center;
+        padding: 20px;
+      }
+
+      .email-body {
+        padding: 30px;
+        text-align: center;
+      }
+
+      .join-button {
+        display: inline-block;
+        background: #4caf50;
+        color: white;
+        padding: 12px 24px;
+        text-decoration: none;
+        border-radius: 5px;
+        margin: 20px 0;
+        font-weight: bold;
+        transition: background 0.3s ease;
+      }
+
+      .join-button:hover {
+        background: #45a049;
+      }
+
+      .footer {
+        background-color: #f4f4f4;
+        text-align: center;
+        padding: 10px;
+        font-size: 12px;
+        color: #777;
+      }
+
+      .highlight {
+        color: #2196f3;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class='email-container'>
+      <div class='email-header'>
+        <h1>You're Invited!</h1>
+      </div>
+      <div class='email-body'>
+        <h2 class='user-title'>Hello {{otp.invitation.firstName}},</h2>
+        <p>You have been invited to join the
+          <span class='highlight'>AttendX</span>
+          by {Inviter}.
+        </p>
+        <p>This system will help you track and manage attendance seamlessly.</p>
+        <a href='{INVITATION_LINK}' class='join-button'>OTP: {{otp.otp}}</a>
+        <p>Your temporary access code is:
+          <span class='highlight'>{{otp.otp}}</span>
+        </p>
+        <p>This invitation will expire in 7 days. If you have any questions,
+          please contact your system administrator.</p>
+      </div>
+      <div class='footer'>
+        ©
+        {{year}}
+        AttendX. All rights reserved.
+      </div>
+    </div>
+  </body>
+
+</html>

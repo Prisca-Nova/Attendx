@@ -1,0 +1,31 @@
+import { DataSource } from 'typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
+declare const _default: (() => {
+    type: string;
+    host: string;
+    port: string;
+    username: string;
+    password: string;
+    database: string;
+    entities: string[];
+    migrations: string[];
+    seeds: string[];
+    autoLoadEntities: boolean;
+    synchronize: boolean;
+    namingStrategy: SnakeNamingStrategy;
+}) & import("@nestjs/config").ConfigFactoryKeyHost<{
+    type: string;
+    host: string;
+    port: string;
+    username: string;
+    password: string;
+    database: string;
+    entities: string[];
+    migrations: string[];
+    seeds: string[];
+    autoLoadEntities: boolean;
+    synchronize: boolean;
+    namingStrategy: SnakeNamingStrategy;
+}>;
+export default _default;
+export declare const connectionSource: DataSource;

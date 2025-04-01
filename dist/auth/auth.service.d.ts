@@ -1,0 +1,31 @@
+import { ForgotPasswordDto, InviteUserDto, LoginDto, LoginResponseDto, RefreshTokenRequestDto, RefreshTokenResponseDto, ResetPasswordDto, VerifyAccountDto } from './dto/auth.dto';
+import { UserService } from 'src/user/service/user.service';
+import { JwtService } from '@nestjs/jwt';
+import { AppConfig } from '../config/config';
+import { Cache } from 'cache-manager';
+import { OTP } from './entities/otp.entity';
+import { OTPRepository } from './repositories/otp.repository';
+import { EmailService } from '../email/email.service';
+import { InvitationRepository } from './repositories/invitation.repository';
+export declare class AuthService {
+    private readonly userService;
+    private readonly jwtService;
+    private readonly appConfig;
+    private readonly OtpRepository;
+    private readonly emailService;
+    private readonly invitationRepository;
+    private readonly cacheManager;
+    private readonly logger;
+    constructor(userService: UserService, jwtService: JwtService, appConfig: AppConfig, OtpRepository: OTPRepository, emailService: EmailService, invitationRepository: InvitationRepository, cacheManager: Cache);
+    authenticate(data: LoginDto): Promise<LoginResponseDto>;
+    refresh(dto: RefreshTokenRequestDto): Promise<RefreshTokenResponseDto>;
+    forgotPassword(dto: ForgotPasswordDto): Promise<void>;
+    resetPassword(dto: ResetPasswordDto): Promise<void>;
+    isOTPExpired(otp: OTP): boolean;
+    verifyAccount(verifyAccountDto: VerifyAccountDto): Promise<void>;
+    validateOtp(otpValue: string): Promise<OTP>;
+    private verifyUserAccount;
+    private createUserFromInvitation;
+    sendInvite(inviteUserDto: InviteUserDto): Promise<void>;
+    private validateEmail;
+}
