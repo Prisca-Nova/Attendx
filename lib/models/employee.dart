@@ -24,5 +24,4 @@ class Employee {
       'employeeNumber': employeeNumber,
     };
   }
-  
 }

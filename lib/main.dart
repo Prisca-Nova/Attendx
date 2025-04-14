@@ -1,26 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/auth_provider.dart';
+import 'services/api_service.dart';
 import 'screens/splash_screen.dart';
+import 'utils/env.dart';
 
 Future main() async {
-  // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
+  
+  final sharedPreferences = await SharedPreferences.getInstance();
+  final apiService = ApiService(baseUrl: Env.apiUrl);
+  final authProvider = AuthProvider(apiService: apiService);
 
-  // Create providers outside the widget tree
-  final authProvider = AuthProvider();
+  // Check if we have a saved token
+  final token = sharedPreferences.getString('token');
+  if (token != null) {
+    apiService.setToken(token);
+    // Try to load user
+    await authProvider.checkAuth();
+  }
 
   runApp(
-    MyApp(authProvider: authProvider),
+    MyApp(
+      authProvider: authProvider,
+      apiService: apiService,
+    ),
   );
 }
 
 class MyApp extends StatelessWidget {
   final AuthProvider authProvider;
+  final ApiService apiService;
 
-  const MyApp({Key? key, required this.authProvider}) : super(key: key);
+  const MyApp({
+    Key? key,
+    required this.authProvider,
+    required this.apiService,
+  }) : super(key: key);
 
-  // Extract theme data to a separate getter for better organization
   ThemeData get _appTheme {
     const seedColor = Color.fromARGB(255, 219, 128, 53);
     final colorScheme = ColorScheme.fromSeed(seedColor: seedColor);
@@ -62,11 +80,12 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: authProvider),
+        Provider.value(value: apiService),
       ],
       child: MaterialApp(
-        title: 'Attendx', // App name
+        title: 'Attendx',
         theme: _appTheme,
-        home: const SplashScreen(), // Directly start with SplashScreen
+        home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
         builder: (context, child) {
           return GestureDetector(

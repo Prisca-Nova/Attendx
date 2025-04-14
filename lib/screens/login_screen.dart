@@ -13,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   String? _errorMessage;
 
@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     _controller.dispose();
     super.dispose();
@@ -71,7 +71,7 @@ class _LoginScreenState extends State<LoginScreen>
       try {
         final success =
             await Provider.of<AuthProvider>(context, listen: false).login(
-          _usernameController.text.trim(),
+          _emailController.text.trim(),
           _passwordController.text,
         );
 
@@ -83,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen>
           );
         } else {
           setState(() {
-            _errorMessage = 'Invalid username or password. Please try again.';
+            _errorMessage = 'Invalid email or password. Please try again.';
           });
         }
       } catch (e) {
@@ -144,15 +144,15 @@ class _LoginScreenState extends State<LoginScreen>
 
                 // Username Field
                 TextFormField(
-                  controller: _usernameController,
+                  controller: _emailController,
                   decoration: const InputDecoration(
-                    labelText: 'Username',
+                    labelText: 'Email',
                     prefixIcon: Icon(Icons.person),
                     border: OutlineInputBorder(),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter your username';
+                      return 'Please enter your email';
                     }
                     return null;
                   },

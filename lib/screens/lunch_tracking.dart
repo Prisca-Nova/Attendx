@@ -1,6 +1,10 @@
+import 'dart:js_interop_unsafe';
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/lunch_record.dart';
 import '../models/employee.dart';
+import '../services/api_service.dart';
 
 class LunchTracking extends StatefulWidget {
   const LunchTracking({Key? key}) : super(key: key);
@@ -10,44 +14,141 @@ class LunchTracking extends StatefulWidget {
 }
 
 class _LunchTrackingState extends State<LunchTracking> {
-  // Placeholder list of lunch records (in a real app, this would come from a provider or API)
-  List<LunchRecord> lunchRecords = [
-    LunchRecord(
-      id: '1',
-      employeeId: '1',
-      employeeName: 'John Doe',
-      employeeNumber: 'EMP001',
-      date: DateTime.now(),
-      hasEaten: true,
-    ),
-    LunchRecord(
-      id: '2',
-      employeeId: '2',
-      employeeName: 'Jane Smith',
-      employeeNumber: 'EMP002',
-      date: DateTime.now(),
-      hasEaten: false,
-    ),
-  ];
+  List<LunchRecord> lunchRecords = [];
+  List<Employee> employees = [];
+  bool isLoading = true;
+  String? error;
 
-  // Placeholder list of employees (in a real app, this would come from a provider or API)
-  List<Employee> employees = [
-    Employee(id: '1', name: 'John Doe', employeeNumber: 'EMP001'),
-    Employee(id: '2', name: 'Jane Smith', employeeNumber: 'EMP002'),
-    Employee(id: '3', name: 'Mike Johnson', employeeNumber: 'EMP003'),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+    Future<void> _loadData() async {
+    try {
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      
+      // Use Future.wait correctly and store the result in a variable
+      final results = await Future.wait([
+        apiService.getLunchRecords(),
+        apiService.getEmployees(),
+      ]);
+      
+      // Access the results by index
+      final loadedRecords = results[0] as List<LunchRecord>;
+      final loadedEmployees = results[1] as List<Employee>;
+     
+      setState(() {
+        lunchRecords = loadedRecords;
+        employees = loadedEmployees;
+        isLoading = false;
+        error = null;
+      }); 
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        error = e.toString();
+      });
+    }
+  }
+
+
+  Future<void> _addLunchRecord(String employeeId, bool hasEaten) async {
+    try {
+      final employee = employees.firstWhere((e) => e.id == employeeId);
+      final newRecord = LunchRecord(
+        id: '',
+        employeeId: employeeId,
+        employeeName: employee.name,
+        employeeNumber: employee.employeeNumber,
+        date: DateTime.now(),
+        hasEaten: hasEaten,
+      );
+      
+      final apiService = Provider.of<ApiService>(context, listen: false);
+      final createdRecord = await apiService.createLunchRecord(newRecord);
+      
+      setState(() {
+        lunchRecords.add(createdRecord);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add lunch record: $e')),
+      );
+    }
+  }
+
+  void _showAddLunchRecordDialog() {
+    String? selectedEmployeeId;
+    bool hasEaten = true;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Lunch Record'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                hint: const Text('Select Employee'),
+                items: employees.map((Employee employee) {
+                  return DropdownMenuItem<String>(
+                    value: employee.id,
+                    child: Text(employee.name),
+                  );
+                }).toList(),
+                onChanged: (value) => selectedEmployeeId = value,
+              ),
+              SwitchListTile(
+                title: const Text('Has Eaten'),
+                value: hasEaten,
+                onChanged: (value) => hasEaten = value,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (selectedEmployeeId != null) {
+                  _addLunchRecord(selectedEmployeeId!, hasEaten);
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (error != null) {
+      return Center(child: Text('Error: $error'));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Lunch Tracking'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _loadData,
+          ),
+          IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              _showAddLunchRecordDialog();
-            },
+            onPressed: _showAddLunchRecordDialog,
           ),
         ],
       ),
@@ -63,95 +164,12 @@ class _LunchTrackingState extends State<LunchTracking> {
               color: record.hasEaten ? Colors.green : Colors.red,
             ),
             onTap: () {
-              _showLunchRecordDetails(record);
+              // Show details if needed
+              
             },
           );
         },
       ),
-    );
-  }
-
-  void _showAddLunchRecordDialog() {
-    final TextEditingController employeeController = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Add Lunch Record'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<Employee>(
-                hint: const Text('Select Employee'),
-                items: employees.map((Employee employee) {
-                  return DropdownMenuItem<Employee>(
-                    value: employee,
-                    child: Text(employee.name),
-                  );
-                }).toList(),
-                onChanged: (selectedEmployee) {
-                  if (selectedEmployee != null) {
-                    employeeController.text = selectedEmployee.name;
-                  }
-                },
-              ),
-              SwitchListTile(
-                title: const Text('Has Eaten'),
-                value: true,
-                onChanged: (bool value) {
-                  // TODO: Implement lunch tracking logic
-                  
-                },
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Implement save lunch record functionality
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Lunch record functionality coming soon!')),
-                );
-              },
-              child: const Text('Save'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showLunchRecordDetails(LunchRecord record) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Lunch Record - ${record.employeeName}'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Employee Number: ${record.employeeNumber}'),
-              Text('Date: ${record.date}'),
-              Text('Lunch Status: ${record.hasEaten ? 'Eaten' : 'Not Eaten'}'),
-              if (record.signature != null)
-                Text('Signature: ${record.signature}'),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
