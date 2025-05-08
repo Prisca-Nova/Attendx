@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:new_employee_lunch_app/models/company.dart';
 import '../models/user.dart';
 import '../models/employee.dart';
 import '../models/lunch_record.dart';
@@ -14,11 +15,11 @@ class ApiService {
   void setToken(String token) {
     _token = token;
   }
-    // Get the authentication token
+
+  // Get the authentication token
   String? getToken() {
     return _token;
   }
-
 
   // Get headers with authorization if token exists
   Map<String, String> getHeaders() {
@@ -31,108 +32,90 @@ class ApiService {
     return headers;
   }
 
-// Login method with corrected response parsing
-Future<User?> login(String email, String password) async {
-  try {
-    final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
-      headers: getHeaders(),
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
-    );
+  // Login method
+  Future<User?> login(String email, String password) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: getHeaders(),
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+        }),
+      );
 
-    print('Login response status: ${response.statusCode}');
-    print('Login response body: ${response.body}');
-
-    if (response.statusCode == 200 && response.body.isNotEmpty) {
-      Map<String, dynamic>? decoded;
-      try {
-        decoded = jsonDecode(response.body) as Map<String, dynamic>;
-      } catch (e) {
-        print('JSON decode error: $e');
-        return null;
-      }
-
-      if (decoded.containsKey('data')) {
-        final data = decoded['data'] as Map<String, dynamic>;
-
-        // Extract and store token
-        _token = data['accessToken'] as String?;
-
-        // Extract user
-        if (data.containsKey('user') && data['user'] != null) {
-          final userJson = data['user'] as Map<String, dynamic>;
-          return User.fromJson(userJson);
-        } else {
-          print('User data missing in response');
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        final decoded = jsonDecode(response.body) as Map<String, dynamic>;
+        
+        if (decoded.containsKey('data')) {
+          final data = decoded['data'] as Map<String, dynamic>;
+          _token = data['accessToken'] as String?;
+          
+          if (data.containsKey('user') && data['user'] != null) {
+            final userJson = data['user'] as Map<String, dynamic>;
+            return User.fromJson(userJson);
+          }
         }
-      } else {
-        print('Missing "data" in response');
       }
-    } else {
-      print('Login failed with status code: ${response.statusCode}');
+      return null;
+    } catch (e) {
+      print('Login error: $e');
+      return null;
     }
-
-    return null;
-  } catch (e) {
-    print('Login error: $e');
-    return null;
   }
-}
-
-
-Future<User?> getCurrentUser() async {
-  try {
-    
+  Future<Company> getCurrentCompany() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/auth/login'),
+      Uri.parse('$baseUrl/company/current'),
       headers: getHeaders(),
     );
 
-    print('Get current user status: ${response.statusCode}');
-    print('Get current user body: ${response.body}');
-
-    if (response.statusCode == 200 && response.body.isNotEmpty) {
-      Map<String, dynamic>? decoded;
-      try {
-        decoded = jsonDecode(response.body) as Map<String, dynamic>;
-        return User.fromJson(decoded);
-      } catch (e) {
-        print('JSON decode error in getCurrentUser: $e');
-        return null;
-      }
+    if (response.statusCode == 200) {
+      return Company.fromJson(jsonDecode(response.body));
     }
-    return null;
-  } catch (e) {
-    print('Get current user error: $e');
-    return null;
+    throw Exception('Failed to load company');
   }
-}
-// Employee CRUD operations
-  Future<List<Employee>> getEmployees() async {
+  
+  Future<User?> getCurrentUser() async {
     try {
       final response = await http.get(
-        Uri.parse('$baseUrl/employees'),
+        Uri.parse('$baseUrl/auth/me'),
         headers: getHeaders(),
       );
 
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((e) => Employee.fromJson(e)).toList();
+      if (response.statusCode == 200 && response.body.isNotEmpty) {
+        return User.fromJson(jsonDecode(response.body));
       }
-      throw Exception('Failed to load employees');
+      return null;
     } catch (e) {
-      print('Get employees error: $e');
-      throw Exception('Failed to load employees');
+      print('Get current user error: $e');
+      return null;
     }
   }
 
-  Future<Employee> createEmployee(Employee employee) async {
+  // Company Employee CRUD operations
+  Future<List<Employee>> getCompanyEmployees(String companyId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/company/$companyId/employees'),
+        headers: getHeaders(),
+      );
+
+    if (response.statusCode == 200) {
+  final json = jsonDecode(response.body) as Map<String, dynamic>;
+  final List<dynamic> data = json['data']; // 👈 access the list properly
+  return data.map((e) => Employee.fromJson(e)).toList();
+}
+      throw Exception('Failed to load company employees');
+    } catch (e) {
+      print('Get company employees error: $e');
+      throw Exception('Failed to load company employees');
+    }
+  }
+
+  Future<Employee> createCompanyEmployee(String companyId, Employee employee) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/employees'),
+        Uri.parse('$baseUrl/company/$companyId/employees'),
         headers: getHeaders(),
         body: jsonEncode(employee.toJson()),
       );
@@ -140,17 +123,17 @@ Future<User?> getCurrentUser() async {
       if (response.statusCode == 201) {
         return Employee.fromJson(jsonDecode(response.body));
       }
-      throw Exception('Failed to create employee');
+      throw Exception('Failed to create company employee');
     } catch (e) {
-      print('Create employee error: $e');
-      throw Exception('Failed to create employee');
+      print('Create company employee error: $e');
+      throw Exception('Failed to create company employee');
     }
   }
 
-  Future<Employee> updateEmployee(String id, Employee employee) async {
+  Future<Employee> updateCompanyEmployee(String companyId, String employeeId, Employee employee) async {
     try {
       final response = await http.put(
-        Uri.parse('$baseUrl/employees/$id'),
+        Uri.parse('$baseUrl/company/$companyId/employees/$employeeId'),
         headers: getHeaders(),
         body: jsonEncode(employee.toJson()),
       );
@@ -158,29 +141,122 @@ Future<User?> getCurrentUser() async {
       if (response.statusCode == 200) {
         return Employee.fromJson(jsonDecode(response.body));
       }
-      throw Exception('Failed to update employee');
+      throw Exception('Failed to update company employee');
     } catch (e) {
-      print('Update employee error: $e');
-      throw Exception('Failed to update employee');
+      print('Update company employee error: $e');
+      throw Exception('Failed to update company employee');
     }
   }
 
-  Future<bool> deleteEmployee(String id) async {
+  Future<Employee> patchCompanyEmployee(String companyId, String employeeId, Map<String, dynamic> updates) async {
+    try {
+      final response = await http.patch(
+        Uri.parse('$baseUrl/company/$companyId/employees/$employeeId'),
+        headers: getHeaders(),
+        body: jsonEncode(updates),
+      );
+
+      if (response.statusCode == 200) {
+        return Employee.fromJson(jsonDecode(response.body));
+      }
+      throw Exception('Failed to patch company employee');
+    } catch (e) {
+      print('Patch company employee error: $e');
+      throw Exception('Failed to patch company employee');
+    }
+  }
+
+  Future<bool> deleteCompanyEmployee(String companyId, String employeeId) async {
     try {
       final response = await http.delete(
-        Uri.parse('$baseUrl/employees/$id'),
+        Uri.parse('$baseUrl/company/$companyId/employees/$employeeId'),
         headers: getHeaders(),
       );
 
       return response.statusCode == 200;
     } catch (e) {
-      print('Delete employee error: $e');
-      throw Exception('Failed to delete employee');
+      print('Delete company employee error: $e');
+      throw Exception('Failed to delete company employee');
     }
   }
 
-  // Lunch Record operations
-  Future<List<LunchRecord>> getLunchRecords() async {
+  Future<bool> importCompanyEmployees(String companyId, String csvData) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/company/$companyId/employee/import'),
+        headers: {
+          ...getHeaders(),
+          'Content-Type': 'text/csv',
+        },
+        body: csvData,
+      );
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Import company employees error: $e');
+      throw Exception('Failed to import company employees');
+    }
+  }
+
+  // Staff operations (same as employees but with /staff endpoint)
+  Future<List<Employee>> getCompanyStaff(String companyId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/company/$companyId/staff'),
+        headers: getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        return data.map((e) => Employee.fromJson(e)).toList();
+      }
+      throw Exception('Failed to load company staff');
+    } catch (e) {
+      print('Get company staff error: $e');
+      throw Exception('Failed to load company staff');
+    }
+  }
+
+
+Future<List<Company>> getCompanies() async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/company'),
+      headers: getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((e) => Company.fromJson(e)).toList();
+    }
+    throw Exception('Failed to load companies');
+  } catch (e) {
+    print('Get companies error: $e');
+    throw Exception('Failed to load companies');
+  }
+}
+
+Future<Company> getCompany(String companyId) async {
+  try {
+    final response = await http.get(
+      Uri.parse('$baseUrl/company/$companyId'),
+      headers: getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      return Company.fromJson(jsonDecode(response.body));
+    }
+    throw Exception('Failed to load company');
+  } catch (e) {
+    print('Get company error: $e');
+    throw Exception('Failed to load company');
+  }
+}
+
+  // Similar CRUD operations for staff as employees...
+
+  // Attendance operations
+  Future<List<LunchRecord>> getAttendances() async {
     try {
       final response = await http.get(
         Uri.parse('$baseUrl/attendance'),
@@ -191,10 +267,27 @@ Future<User?> getCurrentUser() async {
         final List<dynamic> data = jsonDecode(response.body);
         return data.map((e) => LunchRecord.fromJson(e)).toList();
       }
-      throw Exception('Failed to load lunch records');
+      throw Exception('Failed to load attendances');
     } catch (e) {
-      print('Get lunch records error: $e');
-      throw Exception('Failed to load lunch records');
+      print('Get attendances error: $e');
+      throw Exception('Failed to load attendances');
+    }
+  }
+
+  Future<LunchRecord> getAttendanceById(String id) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/attendance/$id'),
+        headers: getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return LunchRecord.fromJson(jsonDecode(response.body));
+      }
+      throw Exception('Failed to load attendance');
+    } catch (e) {
+      print('Get attendance by ID error: $e');
+      throw Exception('Failed to load attendance');
     }
   }
 
@@ -213,24 +306,6 @@ Future<User?> getCurrentUser() async {
     } catch (e) {
       print('Create lunch record error: $e');
       throw Exception('Failed to create lunch record');
-    }
-  }
-
-  Future<List<LunchRecord>> getEmployeeLunchRecords(String employeeId) async {
-    try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/employees/$employeeId/attendance'),
-        headers: getHeaders(),
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
-        return data.map((e) => LunchRecord.fromJson(e)).toList();
-      }
-      throw Exception('Failed to load employee lunch records');
-    } catch (e) {
-      print('Get employee lunch records error: $e');
-      throw Exception('Failed to load employee lunch records');
     }
   }
 }

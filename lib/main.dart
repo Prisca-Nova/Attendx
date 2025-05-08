@@ -5,7 +5,6 @@ import 'providers/auth_provider.dart';
 import 'services/api_service.dart';
 import 'screens/splash_screen.dart';
 import 'utils/env.dart';
-
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
   

@@ -1,5 +1,3 @@
-import 'dart:js_interop_unsafe';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/lunch_record.dart';
@@ -7,7 +5,9 @@ import '../models/employee.dart';
 import '../services/api_service.dart';
 
 class LunchTracking extends StatefulWidget {
-  const LunchTracking({Key? key}) : super(key: key);
+  final String companyId;
+
+  const LunchTracking({Key? key, required this.companyId}) : super(key: key);
 
   @override
   _LunchTrackingState createState() => _LunchTrackingState();
@@ -25,26 +25,22 @@ class _LunchTrackingState extends State<LunchTracking> {
     _loadData();
   }
 
-    Future<void> _loadData() async {
+  Future<void> _loadData() async {
     try {
       final apiService = Provider.of<ApiService>(context, listen: false);
-      
-      // Use Future.wait correctly and store the result in a variable
+
       final results = await Future.wait([
-        apiService.getLunchRecords(),
-        apiService.getEmployees(),
+        apiService
+            .getAttendances(), // Changed from createLunchRecord() to getAttendances()
+        apiService.getCompanyEmployees(widget.companyId),
       ]);
-      
-      // Access the results by index
-      final loadedRecords = results[0] as List<LunchRecord>;
-      final loadedEmployees = results[1] as List<Employee>;
-     
+
       setState(() {
-        lunchRecords = loadedRecords;
-        employees = loadedEmployees;
+        lunchRecords = results[0] as List<LunchRecord>;
+        employees = results[1] as List<Employee>;
         isLoading = false;
         error = null;
-      }); 
+      });
     } catch (e) {
       setState(() {
         isLoading = false;
@@ -52,7 +48,6 @@ class _LunchTrackingState extends State<LunchTracking> {
       });
     }
   }
-
 
   Future<void> _addLunchRecord(String employeeId, bool hasEaten) async {
     try {
@@ -65,10 +60,10 @@ class _LunchTrackingState extends State<LunchTracking> {
         date: DateTime.now(),
         hasEaten: hasEaten,
       );
-      
+
       final apiService = Provider.of<ApiService>(context, listen: false);
       final createdRecord = await apiService.createLunchRecord(newRecord);
-      
+
       setState(() {
         lunchRecords.add(createdRecord);
       });
@@ -165,7 +160,6 @@ class _LunchTrackingState extends State<LunchTracking> {
             ),
             onTap: () {
               // Show details if needed
-              
             },
           );
         },
