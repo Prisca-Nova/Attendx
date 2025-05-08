@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:new_employee_lunch_app/screens/employee_list%20.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'login_screen.dart';
-import '../screens/employee_list .dart'; 
-import 'lunch_tracking.dart';  
-import 'reports.dart';
+import 'lunch_tracking.dart';
+import 'report_screen.dart';
 import '../models/company.dart';
+import 'employee_list .dart';
 
 class StaffDashboard extends StatefulWidget {
   const StaffDashboard({Key? key}) : super(key: key);
@@ -20,6 +19,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
   List<Company> companies = [];
   Company? selectedCompany;
   bool isLoading = true;
+  String? error;
 
   @override
   void initState() {
@@ -29,8 +29,14 @@ class _StaffDashboardState extends State<StaffDashboard> {
 
   Future<void> _loadCompanies() async {
     try {
+      setState(() {
+        isLoading = true;
+        error = null;
+      });
+
       final apiService = Provider.of<ApiService>(context, listen: false);
-      final loadedCompanies = await apiService.getCompanies(); 
+      final loadedCompanies = await apiService.getCompanies();
+
       setState(() {
         companies = loadedCompanies;
         if (loadedCompanies.isNotEmpty) {
@@ -41,6 +47,7 @@ class _StaffDashboardState extends State<StaffDashboard> {
     } catch (e) {
       setState(() {
         isLoading = false;
+        error = e.toString();
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to load companies: $e')),
@@ -53,23 +60,46 @@ class _StaffDashboardState extends State<StaffDashboard> {
     String title,
     IconData icon,
     Color color,
-    VoidCallback onTap,
-  ) {
+    VoidCallback onTap, {
+    String? subtitle,
+  }) {
     return Card(
       elevation: 4,
-      color: color,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: InkWell(
         onTap: onTap,
-        child: Center(
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withOpacity(0.8),
+                color,
+              ],
+            ),
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                icon,
-                size: 50,
-                color: Colors.white,
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 40,
+                  color: Colors.white,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 title,
                 style: const TextStyle(
@@ -79,6 +109,17 @@ class _StaffDashboardState extends State<StaffDashboard> {
                 ),
                 textAlign: TextAlign.center,
               ),
+              if (subtitle != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 12,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),
@@ -89,9 +130,61 @@ class _StaffDashboardState extends State<StaffDashboard> {
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
-    
+    final user = authProvider.currentUser;
+    final theme = Theme.of(context);
+
     if (isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Staff Dashboard'),
+          elevation: 0,
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (error != null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Staff Dashboard'),
+          elevation: 0,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 60,
+                color: Colors.red,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Error loading data',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.red[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error!,
+                style: const TextStyle(color: Colors.grey),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _loadCompanies,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return Scaffold(
@@ -99,22 +192,25 @@ class _StaffDashboardState extends State<StaffDashboard> {
         title: const Text('Staff Dashboard'),
         actions: [
           if (companies.isNotEmpty)
-            DropdownButton<Company>(
-              value: selectedCompany,
-              items: companies.map((Company company) {
-                return DropdownMenuItem<Company>(
-                  value: company,
-                  child: Text(company.name),
-                );
-              }).toList(),
-              onChanged: (Company? newValue) {
-                setState(() {
-                  selectedCompany = newValue;
-                });
-              },
-              underline: Container(),
-              dropdownColor: Colors.white,
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: DropdownButton<Company>(
+                value: selectedCompany,
+                items: companies.map((Company company) {
+                  return DropdownMenuItem<Company>(
+                    value: company,
+                    child: Text(company.name),
+                  );
+                }).toList(),
+                onChanged: (Company? newValue) {
+                  setState(() {
+                    selectedCompany = newValue;
+                  });
+                },
+                underline: Container(),
+                dropdownColor: Colors.white,
+                icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+              ),
             ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -142,7 +238,6 @@ class _StaffDashboardState extends State<StaffDashboard> {
               ),
             ),
             const SizedBox(height: 32),
-            
             if (selectedCompany != null) ...[
               Text(
                 'Selected Company: ${selectedCompany!.name}',
@@ -150,7 +245,6 @@ class _StaffDashboardState extends State<StaffDashboard> {
               ),
               const SizedBox(height: 16),
             ],
-            
             Expanded(
               child: GridView.count(
                 crossAxisCount: 2,
@@ -167,28 +261,30 @@ class _StaffDashboardState extends State<StaffDashboard> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => EmployeeList(companyId: selectedCompany!.id),
+                          builder: (_) =>
+                              EmployeeList(companyId: selectedCompany!.id),
                         ),
                       );
                     },
+                    subtitle: 'Add, edit, remove employees',
                   ),
-                  
                   _buildDashboardCard(
                     context,
                     'Lunch Tracking',
                     Icons.lunch_dining,
-                    Color.fromARGB(255, 219, 128, 53),
+                    const Color.fromARGB(255, 219, 128, 53),
                     () {
                       if (selectedCompany == null) return;
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => LunchTracking(companyId: selectedCompany!.id),
+                          builder: (_) =>
+                              LunchTracking(companyId: selectedCompany!.id),
                         ),
                       );
                     },
+                    subtitle: 'Track employee lunches',
                   ),
-
                   _buildDashboardCard(
                     context,
                     'View Reports',
@@ -197,11 +293,12 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (_) => const ReportsScreen()),
+                        MaterialPageRoute(
+                            builder: (_) => const ReportsScreen()),
                       );
                     },
+                    subtitle: 'Generate lunch reports',
                   ),
-
                   _buildDashboardCard(
                     context,
                     'My Profile',
@@ -209,9 +306,11 @@ class _StaffDashboardState extends State<StaffDashboard> {
                     Colors.purple,
                     () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Profile screen coming soon!')),
+                        const SnackBar(
+                            content: Text('Profile screen coming soon!')),
                       );
                     },
+                    subtitle: 'View and edit profile',
                   ),
                 ],
               ),

@@ -116,6 +116,8 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Widget _buildParticleBackground() {
+    final primaryColor = Theme.of(context).primaryColor;
+    
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
@@ -142,7 +144,7 @@ class _SplashScreenState extends State<SplashScreen>
                     height: 10,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Theme.of(context).primaryColor.withOpacity(0.5),
+                      color: primaryColor.withOpacity(0.5),
                     ),
                   ),
                 ),
@@ -156,6 +158,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final primaryColor = Theme.of(context).primaryColor;
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: Stack(
@@ -181,7 +185,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Icon(
                             Icons.fastfood,
                             size: 150,
-                            color: Theme.of(context).primaryColor,
+                            color: primaryColor,
                           ),
                         ),
                       ),
@@ -196,12 +200,29 @@ class _SplashScreenState extends State<SplashScreen>
                   position: _textSlideAnimation,
                   child: Opacity(
                     opacity: _textOpacityAnimation.value,
-                    child: const Text(
+                    child: Text(
                       'Attendx',
                       style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Color.fromARGB(255, 219, 128, 53),
+                        color: primaryColor,
+                      ),
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Tagline
+                SlideTransition(
+                  position: _textSlideAnimation,
+                  child: Opacity(
+                    opacity: _textOpacityAnimation.value,
+                    child: Text(
+                      'Employee Lunch Management',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey[600],
                       ),
                     ),
                   ),
