@@ -7,7 +7,7 @@ class LunchRecord {
   final bool hasEaten;
   final String? signature;
   final String? notes;
-  final String? status; // e.g., "open", "closed", "pending"
+  final String? status; // "open", "closed", "pending"
   
   LunchRecord({
     required this.id,

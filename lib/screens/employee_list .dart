@@ -192,8 +192,9 @@ class _EmployeeListState extends State<EmployeeList> {
                   return;
                 }
                 
+                // Create employee WITHOUT an id
                 final newEmployee = Employee(
-                  id: '',
+                  // id field is omitted completely
                   firstName: firstNameController.text.trim(),
                   lastName: lastNameController.text.trim(),
                   email: emailController.text.trim(),
@@ -289,7 +290,7 @@ class _EmployeeListState extends State<EmployeeList> {
                 }
                 
                 final updatedEmployee = Employee(
-                  id: employee.id,
+                  id: employee.id, // Keep the existing ID for updates
                   firstName: firstNameController.text.trim(),
                   lastName: lastNameController.text.trim(),
                   email: emailController.text.trim(),
@@ -297,7 +298,7 @@ class _EmployeeListState extends State<EmployeeList> {
                   position: positionController.text.trim(),
                 );
                 
-                _updateEmployee(employee.id, updatedEmployee);
+                _updateEmployee(employee.id!, updatedEmployee);
                 Navigator.pop(context);
               },
               child: const Text('Update'),
@@ -320,6 +321,10 @@ class _EmployeeListState extends State<EmployeeList> {
           _filterEmployees();
         }
       });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('${updatedEmployee.name} updated successfully')),
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to update employee: $e')),
@@ -367,7 +372,19 @@ class _EmployeeListState extends State<EmployeeList> {
     }
 
     if (error != null) {
-      return Center(child: Text('Error: $error'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Error: $error'),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadData,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
     }
 
     return Scaffold(
@@ -402,6 +419,7 @@ class _EmployeeListState extends State<EmployeeList> {
                         },
                       )
                     : null,
+                //border: OutlineInput
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -431,43 +449,76 @@ class _EmployeeListState extends State<EmployeeList> {
           
           // Employee list
           Expanded(
-            child: filteredEmployees.isEmpty
-                ? Center(
-                    child: searchController.text.isNotEmpty
-                        ? Text('No employees match "${searchController.text}"')
-                        : const Text('No employees found'),
-                  )
-                : ListView.builder(
-                    itemCount: filteredEmployees.length,
-                    itemBuilder: (context, index) {
-                      final employee = filteredEmployees[index];
-                      return ListTile(
-                        title: Text(employee.name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(employee.email),
-                            if (employee.position != null && employee.position!.isNotEmpty)
-                              Text('Position: ${employee.position}'),
-                          ],
-                        ),
-                        isThreeLine: employee.position != null && employee.position!.isNotEmpty,
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _showEditEmployeeDialog(context, employee),
+            child: RefreshIndicator(
+              onRefresh: _loadData,
+              child: filteredEmployees.isEmpty
+                  ? Center(
+                      child: searchController.text.isNotEmpty
+                          ? Text('No employees match "${searchController.text}"')
+                          : const Text('No employees found'),
+                    )
+                  : ListView.builder(
+                      itemCount: filteredEmployees.length,
+                      itemBuilder: (context, index) {
+                        final employee = filteredEmployees[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: ListTile(
+                            title: Text(
+                              employee.name,
+                              style: const TextStyle(fontWeight: FontWeight.bold),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () => _deleteEmployee(employee.id),
+                            subtitle: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(employee.email),
+                                if (employee.position != null && employee.position!.isNotEmpty)
+                                  Text('Position: ${employee.position}'),
+                                if (employee.phoneNumber != null && employee.phoneNumber!.isNotEmpty)
+                                  Text('Phone: ${employee.phoneNumber}'),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                            isThreeLine: true,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () => _showEditEmployeeDialog(context, employee),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Confirm Deletion'),
+                                        content: Text('Are you sure you want to delete ${employee.name}?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(context),
+                                            child: const Text('Cancel'),
+                                          ),
+                                          ElevatedButton(
+                                            onPressed: () {
+                                              Navigator.pop(context);
+                                              _deleteEmployee(employee.id!);
+                                            },
+                                            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                                            child: const Text('Delete'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
           ),
         ],
       ),

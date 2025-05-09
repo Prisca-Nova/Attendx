@@ -80,7 +80,7 @@ class _LunchTrackingState extends State<LunchTracking> with SingleTickerProvider
       // Create lunch record with signature
       final newRecord = LunchRecord(
         id: '',
-        employeeId: employee.id,
+        employeeId: employee.id!,
         employeeName: employee.name,
         employeeNumber: employee.id, // Using ID as employee number if needed
         date: DateTime.now(),
